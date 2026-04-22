@@ -1,0 +1,182 @@
+---
+title: "Unit conversion with convert_unit: 80+ units guide"
+description: "Reference for Cruncher's convert_unit tool: 80+ units across length, weight, temperature, area, volume, time, speed, and digital storage categories."
+---
+
+Cruncher MCP's `convert_unit` tool converts between 80+ units across 8 categories in a single call. Unit matching is case-insensitive, and temperature conversions use the correct non-linear formulas (C/F/K). This tool is available in the **standard** tier (the default).
+
+---
+
+## `convert_unit`
+
+Converts a value from one unit to another within a supported category.
+
+<ParamField body="value" type="number" required>
+  The numeric value to convert.
+</ParamField>
+
+<ParamField body="category" type="string" required>
+  The unit category. Must be one of: `length`, `weight`, `temperature`, `area`, `volume`, `time`, `speed`, `digital_storage`.
+</ParamField>
+
+<ParamField body="from" type="string" required>
+  The unit to convert from. Case-insensitive (e.g., `"KM"` and `"km"` both work).
+</ParamField>
+
+<ParamField body="to" type="string" required>
+  The unit to convert to. Case-insensitive.
+</ParamField>
+
+### Response format
+
+```json
+{
+  "value": 5,
+  "from": "mi",
+  "to": "km",
+  "result": 8.04672,
+  "category": "length"
+}
+```
+
+### Examples
+
+```json
+{ "value": 5, "category": "length", "from": "mi", "to": "km" }
+// → { "result": 8.04672, ... }
+
+{ "value": 100, "category": "temperature", "from": "C", "to": "F" }
+// → { "result": 212, ... }
+
+{ "value": 1, "category": "digital_storage", "from": "GB", "to": "MB" }
+// → { "result": 1024, ... }
+
+{ "value": 60, "category": "speed", "from": "mph", "to": "km/h" }
+// → { "result": 96.56064, ... }
+```
+
+---
+
+## Supported units by category
+
+### `length`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `m` | Meter |
+| `km` | Kilometer |
+| `cm` | Centimeter |
+| `mm` | Millimeter |
+| `µm` | Micrometer |
+| `nm` | Nanometer |
+| `in` | Inch |
+| `ft` | Foot |
+| `yd` | Yard |
+| `mi` | Mile |
+| `nmi` | Nautical mile |
+
+### `weight`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `kg` | Kilogram |
+| `g` | Gram |
+| `mg` | Milligram |
+| `µg` | Microgram |
+| `lb` | Pound |
+| `oz` | Ounce |
+| `st` | Stone |
+| `t` | Metric ton |
+
+### `temperature`
+
+<Note>
+  Temperature conversions use non-linear formulas (not simple multiplication). Celsius ↔ Fahrenheit ↔ Kelvin are all supported.
+</Note>
+
+| Unit key | Unit |
+| :--- | :--- |
+| `C` | Celsius |
+| `F` | Fahrenheit |
+| `K` | Kelvin |
+
+### `area`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `m²` | Square meter |
+| `km²` | Square kilometer |
+| `cm²` | Square centimeter |
+| `ft²` | Square foot |
+| `ac` | Acre |
+| `ha` | Hectare |
+| `in²` | Square inch |
+| `yd²` | Square yard |
+| `mi²` | Square mile |
+
+### `volume`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `L` | Liter |
+| `mL` | Milliliter |
+| `m³` | Cubic meter |
+| `cm³` | Cubic centimeter |
+| `gal` | US gallon |
+| `qt` | US quart |
+| `pt` | US pint |
+| `cup` | US cup |
+| `fl oz` | US fluid ounce |
+| `tbsp` | Tablespoon |
+| `tsp` | Teaspoon |
+| `imp_gal` | Imperial gallon |
+
+### `time`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `s` | Second |
+| `ms` | Millisecond |
+| `µs` | Microsecond |
+| `ns` | Nanosecond |
+| `min` | Minute |
+| `hr` | Hour |
+| `day` | Day |
+| `week` | Week |
+| `month` | Month (30 days) |
+| `year` | Year (365 days) |
+
+### `speed`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `m/s` | Meters per second |
+| `km/h` | Kilometers per hour |
+| `mph` | Miles per hour |
+| `kn` | Knot |
+| `ft/s` | Feet per second |
+| `mach` | Mach (at sea level) |
+| `c` | Speed of light |
+
+### `digital_storage`
+
+| Unit key | Unit |
+| :--- | :--- |
+| `B` | Byte |
+| `KB` | Kilobyte (1024 B) |
+| `MB` | Megabyte |
+| `GB` | Gigabyte |
+| `TB` | Terabyte |
+| `PB` | Petabyte |
+| `b` | Bit |
+| `Kb` | Kilobit |
+| `Mb` | Megabit |
+| `Gb` | Gigabit |
+
+---
+
+## Notes on usage
+
+- **Case-insensitive matching**: `"KM"`, `"Km"`, and `"km"` are all equivalent.
+- **Temperature is non-linear**: Celsius, Fahrenheit, and Kelvin conversions use the correct offset formulas, not scaling factors.
+- **Cross-category conversion is not supported**: `from` and `to` units must belong to the same `category`.

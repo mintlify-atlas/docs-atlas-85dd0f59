@@ -1,97 +1,96 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Cruncher MCP: Scientific Calculator for AI Assistants"
+description: "Cruncher MCP gives your AI assistant precise, zero-hallucination math. 43 tools across arithmetic, trigonometry, statistics, unit conversion, and more."
 ---
 
-## Setting up
+Cruncher MCP is a zero-dependency scientific calculator server built on the Model Context Protocol (MCP). It gives any compatible AI assistant — Claude, Cursor, Goose, and more — access to 43 math tools with guaranteed accuracy, strict input validation, and infinite-loop protection via worker thread isolation.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Install Cruncher and connect it to your AI client in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="AI Client Setup" icon="plug" href="/clients">
+    Step-by-step configuration for Claude Desktop, Cursor, Cline, and more.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Tool Reference" icon="calculator" href="/tools/overview">
+    Browse all 43 tools across 8 categories with full argument documentation.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Configuration" icon="sliders" href="/configuration/tool-tiers">
+    Choose your tool tier and tune timeout settings for your use case.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Why Cruncher?
 
-Everything you need to create world-class documentation.
+AI language models routinely make arithmetic mistakes. Cruncher eliminates math hallucinations by routing calculations through a validated, sandboxed server that returns exact results.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card title="Zero dependencies" icon="leaf">
+    Pure Node.js — no mathjs, no zod, no MCP SDK. Runs anywhere Node ≥ 18 is available.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Accurate decimals" icon="equals">
+    Integer-scaling math means `0.1 + 0.2 === 0.3`. No IEEE 754 floating-point drift.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Safe expression eval" icon="shield-check">
+    Strict regex whitelist — no `eval()`. Expressions are verified before execution.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Timeout protection" icon="clock">
+    Worker threads with a 3-second kill switch prevent heavy calculations from freezing your assistant.
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Get started
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Install via npm">
+    Run Cruncher instantly with npx — no installation required:
+    ```bash
+    npx @slbdn/cruncher-mcp
+    ```
+  </Step>
+  <Step title="Configure your AI client">
+    Add Cruncher to your MCP client config. For Claude Desktop:
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "cruncher": {
+          "command": "npx",
+          "args": ["@slbdn/cruncher-mcp"]
+        }
+      }
+    }
+    ```
+  </Step>
+  <Step title="Start calculating">
+    Ask your AI assistant any math question — Cruncher handles the computation:
+    - "What is 15% of 240?"
+    - "Calculate the standard deviation of [10, 12, 8, 14, 6]"
+    - "Convert 50 miles to kilometers"
+    - "Evaluate: sin(pi/4) + sqrt(16) + log10(100)"
+  </Step>
+</Steps>
+
+## Tool categories
+
+Cruncher exposes tools across eight categories. The default `standard` tier includes 34 tools; upgrade to `full` for all 43.
+
+<CardGroup cols={2}>
+  <Card title="Arithmetic" icon="plus" href="/tools/arithmetic">
+    Add, subtract, multiply, divide, modulo, power, square root, factorial, and expression evaluation.
+  </Card>
+  <Card title="Trigonometry" icon="circle" href="/tools/trigonometry">
+    Sine, cosine, tangent, and inverse trig with degrees/radians mode switching.
+  </Card>
+  <Card title="Statistics" icon="chart-bar" href="/tools/statistics">
+    Sum, average, median, variance, standard deviation, percentile, and percentage calculations.
+  </Card>
+  <Card title="Unit Conversion" icon="arrows-left-right" href="/tools/unit-conversion">
+    80+ conversions across length, weight, temperature, area, volume, time, speed, and digital storage.
+  </Card>
+  <Card title="Constants" icon="atom" href="/tools/constants">
+    16 mathematical and physical constants including π, e, speed of light, and Planck's constant.
+  </Card>
+  <Card title="Advanced Tools" icon="layer-group" href="/tools/advanced">
+    Memory operations, base conversion, batch processing, and result caching — full tier only.
+  </Card>
+</CardGroup>

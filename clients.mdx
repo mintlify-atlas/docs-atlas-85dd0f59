@@ -1,0 +1,222 @@
+---
+title: "AI client setup: Connect your client to Cruncher MCP"
+description: "Step-by-step configuration for every supported MCP client: Claude Desktop, OpenWebUI, Cursor, Cline, Goose, Zed, LM Studio, and LibreChat."
+---
+
+Cruncher works with any AI client that supports the Model Context Protocol over stdio. Each client has a slightly different way of registering MCP servers — this page covers all of them. For each client you'll find two options: **Option A** uses `npx` to run the latest published package automatically, and **Option B** uses a manually downloaded copy of `cruncher.js`.
+
+<Tip>
+  Option A (npx) is recommended for most users — it always runs the latest version without any manual updates.
+</Tip>
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Locate your configuration file:
+
+    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+    <CodeGroup>
+      ```json Option A: npm package
+      {
+        "mcpServers": {
+          "cruncher": {
+            "command": "npx",
+            "args": ["@slbdn/cruncher-mcp"]
+          }
+        }
+      }
+      ```
+
+      ```json Option B: downloaded file
+      {
+        "mcpServers": {
+          "cruncher": {
+            "command": "node",
+            "args": ["/path/to/cruncher.js"],
+            "env": {
+              "CRUNCHER_TOOL_SET": "standard"
+            }
+          }
+        }
+      }
+      ```
+    </CodeGroup>
+
+    After saving, **completely quit and restart Claude Desktop** for the change to take effect.
+
+    <Note>
+      On macOS and Linux, use a POSIX-style path for Option B: `/home/YOUR_USERNAME/mcp-servers/cruncher.js`. Make sure `node` is in your system PATH.
+    </Note>
+  </Tab>
+
+  <Tab title="OpenWebUI">
+    OpenWebUI (formerly Ollama WebUI) supports stdio MCP servers via its Admin Panel.
+
+    **Option A: npm package**
+
+    1. Go to **Admin Panel** > **Settings** > **Tools** > **MCP Servers**.
+    2. Click **Add Server**.
+    3. Set the name to `Cruncher`, select **Command**, set the command to `npx`, and set Args to `@slbdn/cruncher-mcp`.
+
+    **Option B: downloaded file**
+
+    1. Go to **Admin Panel** > **Settings** > **Tools** > **MCP Servers**.
+    2. Click **Add Server**.
+    3. Set the name to `Cruncher`, select **stdio**, set the command to `node`, and the argument to `/path/to/cruncher.js`.
+  </Tab>
+
+  <Tab title="Cursor IDE">
+    Open **Cursor Settings** (gear icon) > **Features** > **MCP Servers** and click **+ Add New MCP Server**.
+
+    **Option A: npm package**
+
+    Set **Type** to `command`, **Name** to `cruncher`, and **Command** to:
+
+    ```bash
+    npx @slbdn/cruncher-mcp
+    ```
+
+    **Option B: downloaded file**
+
+    Set **Type** to `command`, **Name** to `cruncher`, and **Command** to:
+
+    ```bash
+    node /path/to/cruncher.js
+    ```
+  </Tab>
+
+  <Tab title="Cline (VS Code)">
+    Open the Cline MCP configuration file (`cline_mcp_settings.json`) and add:
+
+    <CodeGroup>
+      ```json Option A: npm package
+      {
+        "mcpServers": {
+          "cruncher": {
+            "command": "npx",
+            "args": ["@slbdn/cruncher-mcp"]
+          }
+        }
+      }
+      ```
+
+      ```json Option B: downloaded file
+      {
+        "mcpServers": {
+          "cruncher": {
+            "command": "node",
+            "args": ["/path/to/cruncher.js"],
+            "env": {
+              "CRUNCHER_TOOL_SET": "standard"
+            }
+          }
+        }
+      }
+      ```
+    </CodeGroup>
+  </Tab>
+
+  <Tab title="Goose">
+    Goose is a terminal-based AI agent that supports MCP via a YAML config file. Edit `~/.goose/config.yaml` (or your local project config) and add:
+
+    <CodeGroup>
+      ```yaml Option A: npm package
+      mcpServers:
+        cruncher:
+          command: npx
+          args:
+            - "@slbdn/cruncher-mcp"
+      ```
+
+      ```yaml Option B: downloaded file
+      mcpServers:
+        cruncher:
+          command: node
+          args:
+            - "/path/to/cruncher.js"
+          env:
+            CRUNCHER_TOOL_SET: "standard"
+      ```
+    </CodeGroup>
+
+    Restart Goose after saving. You can then ask Goose to run calculations like `evaluate_expression` or `median` directly.
+  </Tab>
+
+  <Tab title="Zed Editor">
+    Open **Settings → AI → MCP Servers** and click **Add Server**.
+
+    **Option A: npm package**
+
+    Fill in:
+    - **Name**: `cruncher`
+    - **Command**: `npx`
+    - **Args**: `@slbdn/cruncher-mcp`
+
+    **Option B: downloaded file**
+
+    Fill in:
+    - **Name**: `cruncher`
+    - **Command**: `node`
+    - **Args**: `/absolute/path/to/cruncher.js`
+    - **Env** (optional): `CRUNCHER_TOOL_SET=standard`
+
+    Save. The Zed AI pane can now call Cruncher for precise arithmetic and statistics.
+  </Tab>
+
+  <Tab title="LM Studio">
+    LM Studio runs LLMs entirely offline and includes an MCP client. Open **Settings → MCP** and click **Add Server**.
+
+    **Option A: npm package**
+
+    - **Executable**: `npx`
+    - **Arguments**: `@slbdn/cruncher-mcp`
+
+    **Option B: downloaded file**
+
+    - **Executable**: `node`
+    - **Arguments**: `/absolute/path/to/cruncher.js`
+    - **Environment** (optional): `CRUNCHER_TOOL_SET=standard`
+
+    Your local model can now offload math to Cruncher without any network traffic.
+  </Tab>
+
+  <Tab title="LibreChat">
+    Add the following to your `librechat.yaml` configuration file under the `mcpServers` key:
+
+    <CodeGroup>
+      ```yaml Option A: npm package
+      mcpServers:
+        cruncher:
+          type: stdio
+          command: npx
+          args:
+            - "@slbdn/cruncher-mcp"
+      ```
+
+      ```yaml Option B: downloaded file
+      mcpServers:
+        cruncher:
+          type: stdio
+          command: node
+          args:
+            - "/opt/mcp/cruncher.js"
+          env:
+            CRUNCHER_TIMEOUT: "5000"
+      ```
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Environment variables
+
+All clients support optional environment variables to configure Cruncher's behavior:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CRUNCHER_TOOL_SET` | `standard` | Tool tier: `minimal` (5 tools), `standard` (34), or `full` (43) |
+| `CRUNCHER_TIMEOUT` | `3000` | Worker thread timeout in milliseconds (range: 100–60000) |
+
+<Warning>
+  If a calculation times out, do not retry — the timeout is a safety limit. Ask the user to increase `CRUNCHER_TIMEOUT` in their client config if they need longer-running computations.
+</Warning>

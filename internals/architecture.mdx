@@ -1,0 +1,95 @@
+---
+title: "Inside Cruncher: how MCP tool calls are processed"
+description: "A walkthrough of Cruncher's six-stage request pipeline: from MCP initialization and tool discovery through worker execution and JSON-RPC response."
+---
+
+Cruncher MCP is a plain Node.js process that communicates over standard input/output (stdio). Every tool call travels through a six-stage pipeline — from an `initialize` handshake to a JSON-RPC 2.0 response written to stdout — entirely in plain JavaScript with no external dependencies.
+
+## Tool call lifecycle
+
+<Steps>
+  <Step title="Initialization">
+    On startup, the server listens for an `initialize` request from the MCP client. It responds with its capabilities and version info (`v1.2.25`). This handshake establishes the connection before any tools can be called.
+  </Step>
+  <Step title="Tool discovery">
+    The client sends a `tools/list` request. Cruncher responds with the full list of available tools for the active tier (`minimal`, `standard`, or `full`), including each tool's `inputSchema` — the JSON Schema that defines required arguments and their types. Tools are looked up in O(1) time via an in-memory `TOOL_LOOKUP_MAP`.
+  </Step>
+  <Step title="Input validation">
+    Before any tool executes, Cruncher runs a custom recursive `validateArguments` function against the tool's `inputSchema`. No external library is involved. The validator enforces:
+    - Required fields are present
+    - Types are correct (`number`, `string`, `array`)
+    - Enum values match the allowed set
+    - Numeric `min`/`max` constraints are respected
+
+    Validation failures return a structured `-32602` error immediately, before any computation begins.
+  </Step>
+  <Step title="Worker thread execution">
+    Once validated, the tool call is handed off to an isolated Node.js `worker_thread`. This keeps the main thread — and its stdio communication channel — free from blocking. Heavy tools run inside the worker; lightweight tools skip the worker entirely and execute inline on the main thread.
+  </Step>
+  <Step title="Timeout protection">
+    A configurable timer watches the worker. If the worker exceeds the limit, the main thread calls `worker.terminate()` to forcefully end the thread and returns a `-32000` error to the client.
+
+    ```bash
+    # Default timeout: 3000ms. Override with an environment variable.
+    CRUNCHER_TIMEOUT=5000
+    ```
+
+    The timeout range is 100–60000 ms.
+  </Step>
+  <Step title="Safe math and result">
+    The worker executes the tool handler using `safeMath` integer-scaling helpers for decimal-accurate arithmetic, then posts the result back to the main thread. The main thread formats the response as a JSON-RPC 2.0 message and writes it to stdout.
+  </Step>
+</Steps>
+
+## Main-thread vs worker-thread execution
+
+Cruncher routes each tool to either the main thread or a worker thread depending on its computational cost.
+
+**Main thread (executes inline, no timeout):**
+
+These tools are instant one-liners that do not benefit from worker isolation. Running them inline avoids the overhead of spawning a thread.
+
+| Category | Tools |
+|---|---|
+| Power and roots | `power`, `sqrt` |
+| Logarithms | `logarithm`, `natural_log` |
+| Absolute value | `absolute` |
+| Constants | `get_constant` |
+| Statistics (instant) | `count`, `min`, `max`, `variance`, `std_dev` |
+| Percentages | `percentage_of`, `percentage_change`, `percentage_reverse` |
+| Trigonometry tools | `sine`, `cosine`, `tangent`, `asin`, `acos`, `atan` |
+| Memory | `memory_recall`, `memory_add`, `memory_subtract`, `memory_clear` |
+| Cache | `cache_info`, `cache_clear` |
+| Unit conversion | `convert_unit` |
+
+**Worker thread (isolated, timeout-protected):**
+
+These tools may involve loops, sorting, or complex string parsing. Isolating them in a worker ensures the main stdio channel stays responsive even if a calculation stalls.
+
+| Category | Tools |
+|---|---|
+| Expression evaluation | `evaluate_expression` |
+| Number theory | `factorial` |
+| Statistics (sorting) | `median`, `percentile` |
+| Arithmetic with safeMath | `sum`, `avg`, `range`, `divide`, `modulo` |
+| Trig with unit overhead | `sine`, `cosine`, `tangent` tool variants |
+| Base conversion | `convert_base` |
+
+## O(1) tool lookup
+
+When a `tools/call` request arrives, Cruncher locates the handler in constant time using `TOOL_LOOKUP_MAP` — a pre-built JavaScript `Map` that keys each tool name to its handler function. There is no linear search through the tools array at request time.
+
+## LRU result cache
+
+Cruncher maintains an in-memory LRU cache for deterministic tool results:
+
+- **Capacity**: 1000 entries
+- **TTL**: 5 minutes per entry
+- **Key**: Deterministic string built from the tool name and sorted arguments
+- **Benefit**: A cache hit returns immediately, before any worker thread is spawned
+
+Stateful tools (`memory_*`, `batch`, `cache_*`) are marked `NON_CACHEABLE` and always bypass the cache.
+
+<Info>
+Because Cruncher deliberately avoids the official `@modelcontextprotocol/sdk`, the full MCP protocol — JSON-RPC message parsing, request routing, input validation, and error formatting — is implemented in plain JavaScript inside a single file (`cruncher.js`). Reading it is one of the clearest ways to understand exactly how an MCP server works over stdio.
+</Info>

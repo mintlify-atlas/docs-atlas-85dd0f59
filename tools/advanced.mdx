@@ -1,0 +1,197 @@
+---
+title: "Advanced tools: memory, batch, and cache (full tier)"
+description: "Reference for Cruncher's 9 full-tier tools: memory (M+/M−/MR/MC), base conversion, batch processing up to 50 ops, LRU cache management, and percentile."
+---
+
+Cruncher MCP's full tier adds 9 tools for multi-step workflows, persistent memory, base conversion, result caching, and percentile statistics. These tools are not available in `minimal` or `standard` mode.
+
+<Warning>
+  All tools on this page require `CRUNCHER_TOOL_SET=full`. Set this environment variable in your MCP server configuration before use. Without it, the server will return a "Tool not found" error and suggest the nearest available tool.
+</Warning>
+
+---
+
+## Memory tools
+
+Cruncher includes a four-function calculator memory that persists for the lifetime of the server session. Memory starts at `0` and is shared across all calls. A promise-based queue prevents race conditions when concurrent calls modify memory.
+
+### `memory_add`
+
+Adds a value to the current memory total (M+).
+
+<ParamField body="value" type="number" required>
+  The number to add to memory.
+</ParamField>
+
+```json
+{ "value": 99 }
+// Memory was 0 → now 99
+```
+
+### `memory_subtract`
+
+Subtracts a value from the current memory total (M−).
+
+<ParamField body="value" type="number" required>
+  The number to subtract from memory.
+</ParamField>
+
+```json
+{ "value": 15 }
+// Memory was 99 → now 84
+```
+
+### `memory_recall`
+
+Returns the current value stored in memory (MR). Takes no arguments.
+
+```json
+// → 84
+```
+
+### `memory_clear`
+
+Resets memory to zero (MC). Takes no arguments.
+
+```json
+// → "Memory cleared"
+```
+
+### Memory session example
+
+```json
+// Step 1: store 99
+memory_add({ "value": 99 })   // memory = 99
+
+// Step 2: add 5
+memory_add({ "value": 5 })    // memory = 104
+
+// Step 3: recall
+memory_recall()               // → 104
+
+// Step 4: subtract 15
+memory_subtract({ "value": 15 })  // memory = 89
+
+// Step 5: clear
+memory_clear()                // memory = 0
+```
+
+---
+
+## `convert_base`
+
+Converts an integer between number bases 2, 8, 10, and 16.
+
+<ParamField body="value" type="string" required>
+  The number to convert, as a string. Input is case-insensitive — `"ff"` and `"FF"` are both valid hex values.
+</ParamField>
+
+<ParamField body="from_base" type="number" required>
+  The base of the input value. Must be `2`, `8`, `10`, or `16`.
+</ParamField>
+
+<ParamField body="to_base" type="number" required>
+  The target base for the output. Must be `2`, `8`, `10`, or `16`. Hexadecimal output is always **uppercase**.
+</ParamField>
+
+```json
+{ "value": "11010", "from_base": 2, "to_base": 10 }
+// → "26"
+
+{ "value": "0xFF", "from_base": 16, "to_base": 2 }
+// → "11111111"
+
+{ "value": "255", "from_base": 10, "to_base": 16 }
+// → "FF"
+
+{ "value": "17", "from_base": 8, "to_base": 10 }
+// → "15"
+```
+
+---
+
+## `batch`
+
+Executes multiple Cruncher tool calls sequentially in a single MCP request. Use `batch` when you need 2 or more operations that must run in order and cannot be combined into a single `evaluate_expression` string.
+
+<ParamField body="operations" type="object[]" required>
+  An array of operation objects. Maximum 50 operations per call.
+
+  Each object has:
+  - `tool` (string, required): The tool name to call.
+  - `args` (object, required): The arguments for that tool, using the same schema as a direct call.
+</ParamField>
+
+### Result format
+
+Batch returns one result object per operation. Failures do not stop subsequent operations — the batch is **partial-failure tolerant**.
+
+```json
+[
+  { "index": 0, "tool": "sqrt", "success": true, "data": 12 },
+  { "index": 1, "tool": "add", "success": true, "data": 22 },
+  { "index": 2, "tool": "power", "success": false, "error": "..." }
+]
+```
+
+### Example
+
+```json
+{
+  "operations": [
+    { "tool": "sqrt", "args": { "value": 144 } },
+    { "tool": "add", "args": { "a": 12, "b": 10 } },
+    { "tool": "power", "args": { "base": 22, "exponent": 2 } }
+  ]
+}
+// →
+// [
+//   { "index": 0, "tool": "sqrt", "success": true, "data": 12 },
+//   { "index": 1, "tool": "add", "success": true, "data": 22 },
+//   { "index": 2, "tool": "power", "success": true, "data": 484 }
+// ]
+```
+
+---
+
+## Cache tools
+
+Cruncher uses an LRU (Least Recently Used) cache with a capacity of **1,000 entries** and a **5-minute TTL** (time-to-live). Caching is automatic — repeated calls with identical arguments return the cached result at zero computational cost.
+
+### `cache_info`
+
+Returns current cache statistics. Takes no arguments.
+
+```json
+// → { "size": 42, "capacity": 1000, "ttl": 300 }
+```
+
+### `cache_clear`
+
+Clears all cached results. Takes no arguments. Use this to force a fresh calculation after changing angle mode or when debugging unexpected results.
+
+```json
+// → "Cache cleared"
+```
+
+---
+
+## `percentile`
+
+Returns the value at a given percentile in an array using linear interpolation. Also documented on the [statistics page](/tools/statistics).
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+<ParamField body="percentile" type="number" required>
+  The percentile to calculate. Must be in the range `[0, 100]`.
+</ParamField>
+
+```json
+{ "numbers": [10, 20, 30, 40, 50], "percentile": 75 }
+// → 40
+
+{ "numbers": [23, 45, 12, 67, 89, 34, 56, 78, 90, 11], "percentile": 95 }
+// → 89
+```

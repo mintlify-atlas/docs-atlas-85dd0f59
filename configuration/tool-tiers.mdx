@@ -1,0 +1,154 @@
+---
+title: "Cruncher tool tiers: minimal, standard, and full"
+description: "Choose the right Cruncher tool tier to balance token budget against capability — from 5 tools and ~160 tokens to 43 tools and ~1,500 tokens."
+---
+
+Cruncher exposes its 43 tools across three tiers, controlled by the `CRUNCHER_TOOL_SET` environment variable. Each tier is a strict superset of the one before it. Picking a smaller tier reduces the number of tool definitions sent to the model on every request, which directly lowers your context token usage.
+
+## Tier overview
+
+| Tier | Tools | Token budget | Best for |
+|------|------:|-------------:|----------|
+| `minimal` | 5 | ~160 tokens | Lightweight agents, simple arithmetic, token-constrained contexts |
+| `standard` | 34 | ~1,150 tokens | General-purpose AI assistants — trig, stats, percentages, constants, unit conversion |
+| `full` | 43 | ~1,500 tokens | Power users and multi-step workflows needing memory, base conversion, percentile, batch, and cache |
+
+The default tier is `standard`. You do not need to set `CRUNCHER_TOOL_SET` unless you want a different tier.
+
+<Tip>
+  In `minimal` mode, `evaluate_expression` handles all complex math — you can still compute `sin(pi/6) + sqrt(16)` as a single expression string. Dropping from `standard` to `minimal` saves up to 90% of the context tokens Cruncher uses.
+</Tip>
+
+## Minimal tier — 5 tools
+
+The minimal tier gives you core arithmetic plus `evaluate_expression`, which can evaluate any math expression string including trig, logarithms, and constants.
+
+| # | Tool | Description |
+|---|------|-------------|
+| 1 | `evaluate_expression` | Evaluates a plain-text math expression string |
+| 2 | `add` | Addition (a + b) |
+| 3 | `subtract` | Subtraction (a − b) |
+| 4 | `multiply` | Multiplication (a × b) |
+| 5 | `divide` | Division (a ÷ b) |
+
+## Standard tier — 34 tools (default)
+
+The standard tier includes all 5 minimal tools plus trigonometry, statistics, percentages, constants, and unit conversion.
+
+| # | Tool | Category |
+|---|------|----------|
+| 6 | `sqrt` | Square root |
+| 7 | `power` | Exponentiation (a^b) |
+| 8 | `absolute` | Absolute value |
+| 9 | `modulo` | Remainder (a mod b) |
+| 10 | `factorial` | Factorial (n!) |
+| 11 | `logarithm` | Base-10 logarithm |
+| 12 | `natural_log` | Natural logarithm (ln) |
+| 13 | `get_constant` | Math, physics, and chemistry constants |
+| 14 | `sine` | Sine of an angle |
+| 15 | `cosine` | Cosine of an angle |
+| 16 | `tangent` | Tangent of an angle |
+| 17 | `asin` | Inverse sine (arcsine) |
+| 18 | `acos` | Inverse cosine (arccosine) |
+| 19 | `atan` | Inverse tangent (arctangent) |
+| 20 | `set_angle_mode` | Switch global angle mode between degrees and radians |
+| 21 | `get_angle_mode` | Return the current global angle mode |
+| 22 | `sum` | Sum of an array of numbers |
+| 23 | `avg` | Average of an array of numbers |
+| 24 | `min` | Minimum value in an array |
+| 25 | `max` | Maximum value in an array |
+| 26 | `count` | Count elements in an array |
+| 27 | `variance` | Variance — sample (n−1) or population (n) |
+| 28 | `std_dev` | Standard deviation — sample or population |
+| 29 | `percentage_of` | What is X% of Y? |
+| 30 | `percentage_change` | Percentage change from A to B |
+| 31 | `percentage_reverse` | X is Y% of what total? |
+| 32 | `median` | Median of an array |
+| 33 | `range` | Range (max − min) of an array |
+| 34 | `convert_unit` | 80+ unit conversions across 8 categories |
+
+## Full tier — 43 tools
+
+The full tier includes all 34 standard tools plus memory, base conversion, percentile, batch execution, and cache management.
+
+| # | Tool | Category |
+|---|------|----------|
+| 35 | `percentile` | Value at the Nth percentile (0–100) |
+| 36 | `convert_base` | Convert between bases 2, 8, 10, and 16 |
+| 37 | `memory_add` | Add a value to calculator memory (M+) |
+| 38 | `memory_subtract` | Subtract a value from calculator memory (M−) |
+| 39 | `memory_recall` | Recall the current memory value (MR) |
+| 40 | `memory_clear` | Reset memory to zero (MC) |
+| 41 | `batch` | Execute up to 50 tool operations in one request |
+| 42 | `cache_clear` | Clear the computation result cache |
+| 43 | `cache_info` | Show cache statistics |
+
+## Choosing a tier
+
+Use this guidance to pick the right tier for your setup:
+
+- **minimal** — you have a tight token budget, your agent only needs basic arithmetic, or you want to route all complex math through `evaluate_expression` yourself.
+- **standard** — the right choice for most users. Covers everyday math including trig, statistics, unit conversion, and percentages without a large token cost.
+- **full** — you need persistent memory across calls, base conversion, percentile calculations, or want to run batches of operations in a single request.
+
+## Setting the tier in your MCP config
+
+Pass `CRUNCHER_TOOL_SET` in the `env` field of your server entry:
+
+```json
+{
+  "mcpServers": {
+    "cruncher-minimal": {
+      "command": "node",
+      "args": ["/path/to/cruncher.js"],
+      "env": { "CRUNCHER_TOOL_SET": "minimal" }
+    }
+  }
+}
+```
+
+You can register Cruncher multiple times under different names if you want to switch tiers without editing the config:
+
+```json
+{
+  "mcpServers": {
+    "cruncher": {
+      "command": "node",
+      "args": ["/path/to/cruncher.js"],
+      "env": { "CRUNCHER_TOOL_SET": "standard" }
+    },
+    "cruncher-full": {
+      "command": "node",
+      "args": ["/path/to/cruncher.js"],
+      "env": { "CRUNCHER_TOOL_SET": "full" }
+    }
+  }
+}
+```
+
+## Fuzzy tool name matching
+
+If your model calls a tool name with a typo, Cruncher uses Levenshtein distance to find the closest match and returns a suggestion instead of a generic error.
+
+| Typo called | Suggestion returned |
+|-------------|---------------------|
+| `sinn` | `sine` |
+| `squrt` | `sqrt` |
+| `fctorial` | `factorial` |
+| `addd` | `add` |
+| `totally_wrong` | *(no suggestion — too different)* |
+
+The error response includes a human-readable "Did you mean" message:
+
+```json
+{
+  "error": {
+    "code": -32601,
+    "message": "Tool 'sinn' not found. Did you mean 'sine'?"
+  }
+}
+```
+
+<Info>
+  Fuzzy matching applies across all tiers. If the model calls a tool that exists but is not registered in the active tier (for example, calling `memory_recall` while in `standard` mode), Cruncher returns a `-32601` error and suggests switching to `CRUNCHER_TOOL_SET=full`.
+</Info>

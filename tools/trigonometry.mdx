@@ -1,0 +1,188 @@
+---
+title: "Trigonometry tools and angle modes — Cruncher MCP"
+description: "Reference for Cruncher's 8 trigonometry tools: sine, cosine, tangent, asin, acos, atan, set_angle_mode, and get_angle_mode with degree and radian support."
+---
+
+Cruncher MCP provides six trigonometric functions and two angle-mode tools. All six trig tools respect a **global angle mode** (default: degrees) and also accept an explicit `unit` parameter that overrides the global setting for that one call.
+
+## Angle mode
+
+The global angle mode controls how `sine`, `cosine`, `tangent`, `asin`, `acos`, and `atan` interpret their inputs and outputs. The default is **degrees**.
+
+<Warning>
+  `evaluate_expression` **always uses radians**, regardless of the global angle mode. The angle mode only affects the individual trig tool calls documented on this page.
+</Warning>
+
+Use `set_angle_mode` to change the global default, or pass `unit` directly to any trig tool to override it for a single call without changing the global mode.
+
+---
+
+## `set_angle_mode`
+
+Sets the global angle mode used by all trig tools when no explicit `unit` is provided.
+
+<ParamField body="unit" type="string" required>
+  Angle unit for all subsequent trig calls. Must be `"degrees"` or `"radians"`.
+</ParamField>
+
+```json
+{ "unit": "radians" }
+// → "Angle mode set to radians"
+```
+
+---
+
+## `get_angle_mode`
+
+Returns the current global angle mode. Takes no arguments.
+
+```json
+// → "degrees"
+```
+
+---
+
+## `sine`
+
+Calculates the sine of an angle.
+
+<ParamField body="angle" type="number" required>
+  The input angle.
+</ParamField>
+
+<ParamField body="unit" type="string">
+  `"degrees"` or `"radians"`. Overrides the global angle mode for this call only. Defaults to the current global mode.
+</ParamField>
+
+```json
+{ "angle": 90 }
+// → 1  (global mode: degrees)
+
+{ "angle": 1.5707963267948966, "unit": "radians" }
+// → 1
+```
+
+---
+
+## `cosine`
+
+Calculates the cosine of an angle.
+
+<ParamField body="angle" type="number" required>
+  The input angle.
+</ParamField>
+
+<ParamField body="unit" type="string">
+  `"degrees"` or `"radians"`. Overrides the global angle mode for this call only.
+</ParamField>
+
+```json
+{ "angle": 0 }
+// → 1
+
+{ "angle": 180 }
+// → -1
+```
+
+---
+
+## `tangent`
+
+Calculates the tangent of an angle.
+
+<ParamField body="angle" type="number" required>
+  The input angle.
+</ParamField>
+
+<ParamField body="unit" type="string">
+  `"degrees"` or `"radians"`. Overrides the global angle mode for this call only.
+</ParamField>
+
+```json
+{ "angle": 45 }
+// → 1  (global mode: degrees)
+
+{ "angle": 0.7853981633974483, "unit": "radians" }
+// → 1
+```
+
+---
+
+## `asin`
+
+Calculates the inverse sine (arcsine) of a value and returns an angle.
+
+<ParamField body="value" type="number" required>
+  A number in the range `[-1, 1]`. Values outside this range return an error.
+</ParamField>
+
+<ParamField body="unit" type="string">
+  `"degrees"` or `"radians"`. Controls the unit of the **returned angle**. Overrides the global angle mode for this call only.
+</ParamField>
+
+```json
+{ "value": 0.5 }
+// → 30  (global mode: degrees)
+
+{ "value": 0.5, "unit": "radians" }
+// → 0.5235987755982988
+```
+
+---
+
+## `acos`
+
+Calculates the inverse cosine (arccosine) of a value and returns an angle.
+
+<ParamField body="value" type="number" required>
+  A number in the range `[-1, 1]`.
+</ParamField>
+
+<ParamField body="unit" type="string">
+  `"degrees"` or `"radians"`. Controls the unit of the returned angle.
+</ParamField>
+
+```json
+{ "value": 0 }
+// → 90  (global mode: degrees)
+
+{ "value": -1 }
+// → 180
+```
+
+---
+
+## `atan`
+
+Calculates the inverse tangent (arctangent) of a value and returns an angle.
+
+<ParamField body="value" type="number" required>
+  Any real number.
+</ParamField>
+
+<ParamField body="unit" type="string">
+  `"degrees"` or `"radians"`. Controls the unit of the returned angle.
+</ParamField>
+
+```json
+{ "value": 1 }
+// → 45  (global mode: degrees)
+
+{ "value": 1, "unit": "radians" }
+// → 0.7853981633974483
+```
+
+---
+
+## Degrees vs. radians comparison
+
+| Operation | Degrees call | Radians call |
+| :--- | :--- | :--- |
+| sin(90°) = 1 | `{ "angle": 90 }` | `{ "angle": 1.5708, "unit": "radians" }` |
+| cos(180°) = −1 | `{ "angle": 180 }` | `{ "angle": 3.14159, "unit": "radians" }` |
+| asin(0.5) = 30° | `{ "value": 0.5 }` | `{ "value": 0.5, "unit": "radians" }` → 0.5236 |
+| tan(45°) = 1 | `{ "angle": 45 }` | `{ "angle": 0.7854, "unit": "radians" }` |
+
+<Note>
+  All six trig tools are available in the **standard** tier (the default). You do not need `CRUNCHER_TOOL_SET=full` to use them.
+</Note>

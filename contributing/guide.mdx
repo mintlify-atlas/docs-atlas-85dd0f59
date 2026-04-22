@@ -1,0 +1,224 @@
+---
+title: "How to contribute new tools and tests to Cruncher MCP"
+description: "Add new tools, write tests, and submit pull requests to Cruncher MCP — the zero-dependency scientific calculator server built on Node.js."
+---
+
+Cruncher MCP welcomes contributions of new tools, tests, and documentation. Before you open a pull request, read this guide to understand the project's architecture constraints, tool-adding workflow, and quality bar. Every change must preserve the zero-dependency rule and pass all 330 tests.
+
+## Core principles
+
+Cruncher is opinionated by design. These five rules are non-negotiable:
+
+- **Zero dependencies** — No `mathjs`, `zod`, or other external libraries. Use only Node.js built-in modules.
+- **Single-file server** — All logic lives in `cruncher.js`. No splitting into modules.
+- **Type safety via validation** — A custom recursive JSON-Schema validator replaces external schema libraries. Every new tool must declare a full `inputSchema`.
+- **Main-thread first** — Instant tools (lookups, one-liners) run inline on the main thread. Only heavy computations use worker threads.
+- **Strict security** — Expression evaluation uses regex whitelisting. No `eval()`. Heavy ops run in isolated worker threads with a killable timeout.
+
+## Setup
+
+<Steps>
+  <Step title="Prerequisites">
+    Install **Node.js >= 18** and **TypeScript** (used by `tsx` to run the test suite):
+
+    ```bash
+    node --version   # must be >= 18
+    npm install -g tsx
+    ```
+  </Step>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/islobodan/cruncher-mcp.git
+    cd cruncher-mcp
+    ```
+  </Step>
+  <Step title="Run the server">
+    ```bash
+    node cruncher.js
+    ```
+
+    The server speaks the MCP stdio protocol. Connect any MCP-compatible client to verify it works.
+  </Step>
+  <Step title="Run the test suite">
+    ```bash
+    npx tsx test-cruncher-full.ts
+    ```
+
+    All 330 tests must pass before you submit a PR.
+  </Step>
+</Steps>
+
+## How to add a new tool
+
+<Steps>
+  <Step title="Add the tool definition">
+    Add an entry to the `toolsAll` array in `cruncher.js`. Every tool requires `name`, `description`, and `inputSchema`:
+
+    ```javascript
+    {
+        name: "convert_unit",
+        description: "Convert between common units.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                value: { type: "number" },
+                category: { type: "string", enum: ["length", "weight"] },
+                from: { type: "string" },
+                to: { type: "string" },
+            },
+            required: ["value", "category", "from", "to"],
+        },
+    },
+    ```
+  </Step>
+  <Step title="Add the handler">
+    Add a matching entry to the `toolHandlers` object:
+
+    ```javascript
+    convert_unit: ({ value, category, from, to }) => {
+        // ... conversion logic using only built-in Node.js
+        return result;
+    },
+    ```
+  </Step>
+  <Step title="Decide the tier">
+    Choose where the tool belongs:
+
+    - **`standard`** — Everyday math: trig, stats, percentages, constants, unit conversion. This is the default tier (34 tools).
+    - **`full`** — Specialized tools: memory, base conversion, percentiles, batch, cache management.
+
+    Add the tool name to the appropriate tier set in `cruncher.js`.
+  </Step>
+  <Step title="Decide cacheability">
+    If the tool is stateful (memory operations, cache management, batch), add it to the `NON_CACHEABLE` set so results are not incorrectly served from the LRU cache:
+
+    ```javascript
+    const NON_CACHEABLE = new Set([
+        "memory_add", "memory_subtract", "memory_clear", "batch", "cache_clear", "your_tool",
+    ]);
+    ```
+  </Step>
+  <Step title="Decide main-thread vs worker-thread">
+    If the tool is instant — a lookup, a one-liner, or a simple formula — add it to `MAIN_THREAD_TOOLS` to skip worker overhead:
+
+    ```javascript
+    const MAIN_THREAD_TOOLS = new Set([
+        "...", "convert_unit",
+    ]);
+    ```
+
+    Leave heavy operations (loops, sorting, complex parsing) to run in the worker thread where the 3-second timeout applies.
+  </Step>
+  <Step title="Write tests">
+    Add tests in `test-cruncher-full.ts` covering success, error, and edge cases (see pattern below). All tests must pass before opening a PR.
+  </Step>
+  <Step title="Update documentation">
+    Update `README.md` with the new tool in the Available Tools table, and add an entry to `CHANGELOG.md` under `[Unreleased]`.
+  </Step>
+</Steps>
+
+## Writing tests
+
+Add your tests in the appropriate section of `test-cruncher-full.ts` using this pattern:
+
+```typescript
+results.push(
+    await runTest("category: test description", async () => {
+        const result = await client.callTool({
+            name: "your_tool",
+            arguments: { param: value },
+        });
+        const parsed = JSON.parse(result.content[0].text);
+        if (parsed.result !== expected) {
+            throw new Error(`Expected ${expected}, got ${parsed.result}`);
+        }
+    }),
+);
+```
+
+Every new tool needs three kinds of tests:
+
+- **Success cases** — Normal input and boundary values that should return correct results.
+- **Error cases** — Invalid input, wrong types, out-of-range values that should return validation errors.
+- **Edge cases** — Zero, negative numbers, very large values, floating-point boundaries.
+
+## Architecture reference
+
+### Main-thread tools (instant)
+
+These run inline without spawning a worker thread:
+
+- Math one-liners: `power`, `sqrt`, `logarithm`, `natural_log`, `absolute`
+- Constant lookups: `get_constant`
+- Statistical summaries: `count`, `min`, `max`, `variance`, `std_dev`
+- Percentage calculations: `percentage_of`, `percentage_change`, `percentage_reverse`
+- Trig functions: `sine`, `cosine`, `tangent`, `asin`, `acos`, `atan`
+- Angle mode: `set_angle_mode`, `get_angle_mode`
+- Memory recall: `memory_recall`
+- Cache management: `cache_clear`, `cache_info`
+- Unit conversion: `convert_unit`
+
+### Worker-thread tools (heavy)
+
+These run in an isolated thread with a 3-second kill switch:
+
+- `evaluate_expression` — complex string expressions
+- `factorial` — potentially large loops
+- `median` / `percentile` — sorting large arrays
+- `sum` / `avg` / `range` / `divide` / `modulo` — `safeMath` helpers
+- `sine` / `cosine` / `tangent` / `asin` / `acos` / `atan` — individual tool calls with unit conversion overhead
+- `convert_base` — string parsing across bases
+
+### Security model
+
+- **Expression parser**: Strict regex whitelist — only numbers, operators, parentheses, and approved function names pass. Anything else is rejected before execution.
+- **Worker isolation**: Heavy operations run in separate threads. The main thread terminates them via `worker.terminate()` on timeout.
+- **Schema validation**: The custom recursive `validateArguments` function enforces types, enums, and constraints without any external library.
+- **No `eval()`**: Expression evaluation uses regex-transformed `Math.*` calls that are verified against the whitelist before `new Function()` executes them.
+
+## Code style
+
+- **Indentation**: 4 spaces
+- **Tool names**: `snake_case`
+- **Variables**: `camelCase`
+- **Error messages**: Descriptive and human-readable, including the parameter name and received value
+- **No external dependencies**: Never add `require()` calls for packages outside Node.js built-ins
+
+## Commit conventions
+
+```
+type: brief description
+```
+
+| Type | When to use |
+|------|-------------|
+| `feat` | New tool or feature |
+| `docs` | Documentation changes |
+| `fix` | Bug fix |
+| `perf` | Performance improvements |
+| `refactor` | Code restructuring without behavior change |
+| `test` | Test additions or fixes |
+| `license` | License file changes |
+
+## Pull request checklist
+
+Before opening a PR, confirm all of the following:
+
+- All tests pass (`npx tsx test-cruncher-full.ts`)
+- New tools have a complete JSON Schema `inputSchema` with proper types and constraints
+- Security considerations reviewed — no `eval()`, proper input sanitization
+- Tier assignment decided (`standard` vs `full`)
+- Cacheability considered — added to `NON_CACHEABLE` if stateful
+- Tests cover success, error, and edge cases
+- `CHANGELOG.md` updated under `[Unreleased]`
+- `README.md` updated with the new tool in the Available Tools table
+
+<Note>
+  By contributing, you agree your changes will be licensed under the MIT License.
+</Note>
+
+## Reporting issues
+
+- **Bugs**: Include a minimal test case that reproduces the issue.
+- **Feature requests**: Describe the use case and expected behavior.
+- **Security vulnerabilities**: See [SECURITY.md](https://github.com/islobodan/cruncher-mcp/blob/main/SECURITY.md) for the responsible disclosure process.

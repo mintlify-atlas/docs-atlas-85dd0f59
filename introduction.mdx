@@ -1,0 +1,54 @@
+---
+title: "Cruncher MCP: The zero-dependency scientific calculator"
+description: "Cruncher MCP is a zero-dependency scientific calculator server that gives AI assistants precise, validated math across 43 tools — with no hallucinations."
+---
+
+Cruncher MCP is a scientific calculator built on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io) — an open standard that lets AI assistants securely connect to external tools and data sources. Instead of relying on an AI's internal arithmetic (which can drift and hallucinate), Cruncher routes every calculation through a sandboxed server that returns exact results.
+
+<Note>
+  MCP is to AI tools what a USB port is to peripherals — a universal interface that lets any compatible client connect to any compatible server without custom integration work.
+</Note>
+
+## What Cruncher does
+
+Cruncher exposes **43 math tools** across arithmetic, trigonometry, statistics, unit conversion, constants, memory, and more. These tools are organized into three tiers so you can tune how many tools your AI client sees:
+
+| Tier | Tools | Use case |
+|------|-------|----------|
+| `minimal` | 5 | Core arithmetic for lightweight agents |
+| `standard` | 34 | General-purpose math (default) |
+| `full` | 43 | Power users, multi-step workflows |
+
+Each tool call runs inside an isolated Node.js **worker thread**. A configurable timeout (default: 3 seconds) kills any runaway calculation before it can freeze your AI client. Floating-point results are exact — Cruncher uses integer-scaling logic so `0.1 + 0.2` returns `0.3`, not `0.30000000000000004`.
+
+## The zero-dependency philosophy
+
+Cruncher has **no runtime dependencies**. No `mathjs`, no `zod`, no `@modelcontextprotocol/sdk`. Everything is implemented in plain Node.js:
+
+- **Safe expression evaluation** — a strict regex whitelist replaces `eval()`. Only numbers and math operators can pass.
+- **Input validation** — a custom recursive function enforces JSON Schemas without any external library.
+- **Timeout protection** — `worker_threads` from the Node.js standard library, not a process manager.
+- **Decimal accuracy** — integer-scaling logic replaces `decimal.js`.
+
+<Tip>
+  Because Cruncher skips the official MCP SDK, its source code (`cruncher.js`) is a transparent view into exactly how MCP communicates over stdio — useful if you're learning how to build your own MCP server.
+</Tip>
+
+## The purity promise
+
+Cruncher is intentionally self-contained. Installing it adds nothing to your dependency tree. Running it via `npx` requires no local install at all. There is no telemetry, no network traffic, and no state outside of the optional in-memory calculator store (full tier only).
+
+<Info>
+  Cruncher is MIT-licensed, open source, and passes 330 tests at 100% coverage.
+</Info>
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Install Cruncher and connect it to Claude Desktop in a few minutes.
+  </Card>
+  <Card title="Tool reference" icon="calculator" href="/tools/overview">
+    Browse all 43 tools with full argument documentation and examples.
+  </Card>
+</CardGroup>

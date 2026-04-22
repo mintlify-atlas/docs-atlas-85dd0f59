@@ -1,0 +1,125 @@
+---
+title: "Configure Cruncher with environment variables"
+description: "Set CRUNCHER_TIMEOUT and CRUNCHER_TOOL_SET to control worker thread timeout and which tools Cruncher registers with your AI client."
+---
+
+Cruncher reads environment variables at startup to control two key behaviors: how long a worker thread can run before it is killed, and which set of tools is registered with your MCP client. You set these variables in the `env` field of your MCP server configuration — no separate config file is needed.
+
+## Environment variables
+
+<ParamField path="CRUNCHER_TIMEOUT" type="number" default="3000">
+  Worker thread execution timeout in milliseconds. If a calculation takes longer than this value, Cruncher terminates the worker and returns a `-32000` error to the client. Valid range: `100`–`60000`.
+</ParamField>
+
+<ParamField path="CRUNCHER_TOOL_SET" type="string" default="standard">
+  Controls which tools Cruncher registers with the MCP client. Accepted values: `"minimal"` (5 tools), `"standard"` (34 tools, default), or `"full"` (43 tools). See [Tool tiers](/configuration/tool-tiers) for the full breakdown.
+</ParamField>
+
+<Note>
+  Increase `CRUNCHER_TIMEOUT` when you are running heavy calculations such as large factorials or deeply nested expressions. The default 3 seconds is sufficient for typical math queries. If a timeout occurs, raise the value — do not retry the same request.
+</Note>
+
+<Warning>
+  If you receive a `-32000 Execution Timeout` error, **do not retry the request**. The worker was terminated because the calculation exceeded the timeout. Increase `CRUNCHER_TIMEOUT` in your MCP config and restart the server.
+</Warning>
+
+## Setting environment variables in your MCP client
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Open `claude_desktop_config.json` and add an `env` object to your server entry:
+
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "cruncher": {
+          "command": "node",
+          "args": ["/path/to/cruncher.js"],
+          "env": {
+            "CRUNCHER_TIMEOUT": "5000",
+            "CRUNCHER_TOOL_SET": "standard"
+          }
+        }
+      }
+    }
+    ```
+
+    The config file is located at:
+    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+  </Tab>
+
+  <Tab title="Cline / VS Code">
+    Open `cline_mcp_settings.json` and add the `env` field to your Cruncher server entry:
+
+    ```json cline_mcp_settings.json
+    {
+      "mcpServers": {
+        "cruncher": {
+          "command": "node",
+          "args": ["/path/to/cruncher.js"],
+          "env": {
+            "CRUNCHER_TIMEOUT": "5000",
+            "CRUNCHER_TOOL_SET": "full"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Goose">
+    Edit `~/.goose/config.yaml` and add an `env` block under the server entry:
+
+    ```yaml config.yaml
+    mcpServers:
+      cruncher:
+        command: node
+        args:
+          - "/path/to/cruncher.js"
+        env:
+          CRUNCHER_TIMEOUT: "5000"
+          CRUNCHER_TOOL_SET: "standard"
+    ```
+  </Tab>
+
+  <Tab title="Any MCP client">
+    Most MCP clients accept an `env` map alongside the `command` and `args` fields. The pattern is the same regardless of client:
+
+    ```json
+    {
+      "mcpServers": {
+        "cruncher": {
+          "command": "node",
+          "args": ["/path/to/cruncher.js"],
+          "env": {
+            "CRUNCHER_TIMEOUT": "5000",
+            "CRUNCHER_TOOL_SET": "standard"
+          }
+        }
+      }
+    }
+    ```
+
+    If your client uses a YAML config, translate the same keys into YAML format under an `env` block.
+  </Tab>
+</Tabs>
+
+## Using npx instead of a local file
+
+If you installed Cruncher via npm, use `npx` as the command. Environment variables work the same way:
+
+```json
+{
+  "mcpServers": {
+    "cruncher": {
+      "command": "npx",
+      "args": ["@slbdn/cruncher-mcp"],
+      "env": {
+        "CRUNCHER_TIMEOUT": "10000",
+        "CRUNCHER_TOOL_SET": "full"
+      }
+    }
+  }
+}
+```

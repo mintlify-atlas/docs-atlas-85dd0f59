@@ -1,0 +1,92 @@
+---
+title: "Mathematical and physical constants — Cruncher MCP"
+description: "Reference for Cruncher's get_constant tool: 16 constants including pi, e, phi, speed of light, Planck, and Avogadro's number for use in expressions."
+---
+
+Cruncher MCP provides instant access to 16 mathematical and physical constants via the `get_constant` tool. The same constants are also available by name inside any `evaluate_expression` string, so you can use them directly in compound calculations without a separate tool call.
+
+---
+
+## `get_constant`
+
+Returns the value of a named mathematical, physical, or chemical constant.
+
+<ParamField body="name" type="string" required>
+  The constant identifier. Must be one of the 16 names listed in the table below.
+</ParamField>
+
+```json
+{ "name": "c" }
+// → 299792458
+
+{ "name": "pi" }
+// → 3.141592653589793
+```
+
+---
+
+## All 16 constants
+
+| Name | Description | Value |
+| :--- | :--- | :--- |
+| `pi` | π — ratio of a circle's circumference to its diameter | 3.14159265358979... |
+| `e` | Euler's number — base of natural logarithm | 2.71828182845904... |
+| `tau` | τ = 2π — full turn in radians | 6.28318530717958... |
+| `phi` | Golden ratio (φ) | 1.61803398874989... |
+| `sqrt2` | √2 — square root of 2 | 1.41421356237309... |
+| `euler_mascheroni` | Euler–Mascheroni constant (γ) | 0.57721566490153... |
+| `c` | Speed of light in vacuum (m/s) | 299792458 |
+| `g` | Standard acceleration of gravity (m/s²) | 9.80665 |
+| `G` | Newtonian gravitational constant (m³/kg·s²) | 6.6743×10⁻¹¹ |
+| `h` | Planck constant (J·s) | 6.62607015×10⁻³⁴ |
+| `k` | Boltzmann constant (J/K) | 1.380649×10⁻²³ |
+| `R` | Ideal gas constant (J/mol·K) | 8.314462618 |
+| `NA` | Avogadro constant (1/mol) | 6.02214076×10²³ |
+| `e_charge` | Elementary charge (C) | 1.602176634×10⁻¹⁹ |
+| `m_e` | Electron mass (kg) | 9.1093837015×10⁻³¹ |
+| `m_p` | Proton mass (kg) | 1.67262192369×10⁻²⁷ |
+
+---
+
+## Using constants in `evaluate_expression`
+
+You can reference any of these constants by name inside an expression string. Use explicit multiplication operators — `2 * pi` works, `2pi` does not.
+
+```json
+{ "expression": "2 * pi * 5" }
+// → 31.41592653589793  (circumference with r=5)
+
+{ "expression": "phi ^ 2" }
+// → 2.618033988749895
+
+{ "expression": "G * 1e11" }
+// → 6.6743  (gravitational constant scaled)
+
+{ "expression": "sqrt2 * sqrt2" }
+// → 2
+
+{ "expression": "e * e" }
+// → 7.38905609893065
+
+{ "expression": "c * 2" }
+// → 599584916
+```
+
+<Note>
+  Constants coexist with scientific notation in expressions. `1e6` and `e * 2` both work correctly — the parser resolves `euler_mascheroni` before `e` to avoid conflicts, and `e` (Euler's number) before the `e` in notation like `1e6`.
+</Note>
+
+---
+
+## Constant categories
+
+**Mathematical**
+`pi`, `e`, `tau`, `phi`, `sqrt2`, `euler_mascheroni`
+
+**Physical (mechanics)**
+`c` (speed of light), `g` (gravity), `G` (gravitational constant), `h` (Planck)
+
+**Physical (thermodynamics / chemistry)**
+`k` (Boltzmann), `R` (ideal gas), `NA` (Avogadro), `e_charge` (elementary charge), `m_e` (electron mass), `m_p` (proton mass)
+
+All 16 constants are available in the **standard** tier (the default). No additional configuration is required.

@@ -1,0 +1,101 @@
+---
+title: "How Cruncher achieves exact decimal arithmetic"
+description: "How Cruncher avoids IEEE 754 floating-point errors using integer-scaling, making 0.1 + 0.2 === 0.3 for arithmetic, statistical, and financial calculations."
+---
+
+Cruncher MCP solves the classic JavaScript floating-point problem using an integer-scaling technique built directly into its arithmetic helpers. No external library (`decimal.js`, `big.js`) is required — the fix is implemented in plain Node.js inside the `safeMath` functions used by the worker thread.
+
+## The problem: IEEE 754 floating-point drift
+
+JavaScript uses 64-bit IEEE 754 floating-point numbers for all arithmetic. This representation cannot store many decimal fractions exactly, which causes surprising errors in simple calculations:
+
+```javascript
+// Standard JavaScript
+0.1 + 0.2
+// → 0.30000000000000004
+
+0.1 + 0.2 === 0.3
+// → false
+```
+
+These errors accumulate across repeated operations, making raw JavaScript arithmetic unreliable for financial calculations, scientific measurements, or any context where decimal precision matters.
+
+## Cruncher's solution: integer scaling
+
+Cruncher's `safeMath` helpers convert decimal operands to integers before performing arithmetic, then divide back to restore the correct scale. Because integers are represented exactly in IEEE 754, no precision is lost during the operation.
+
+The scaling factor is computed dynamically from the number of decimal places in the operands:
+
+```javascript
+// Conceptual illustration of integer scaling
+function safeAdd(a, b) {
+  const factor = Math.pow(10, decimalPlaces(a, b));
+  return (Math.round(a * factor) + Math.round(b * factor)) / factor;
+}
+
+safeAdd(0.1, 0.2)
+// → 0.3 (exactly)
+```
+
+The result:
+
+```javascript
+// Cruncher result
+0.1 + 0.2
+// → 0.3
+
+0.1 + 0.2 === 0.3
+// → true
+```
+
+## Which tools use safeMath
+
+`safeMath` is applied in the worker thread for tools that perform decimal arithmetic. Tools that delegate entirely to native `Math.*` functions (such as `sqrt`, `logarithm`, and `sine`) use native JavaScript precision, which is appropriate for transcendental functions.
+
+| Tool | Uses safeMath |
+|---|---|
+| `add` | Yes |
+| `subtract` | Yes |
+| `multiply` | Yes |
+| `divide` | Yes |
+| `modulo` | Yes |
+| `sum` | Yes |
+| `avg` | Yes |
+| `range` | Yes |
+| `sqrt` | No (native `Math.sqrt`) |
+| `power` | No (native `Math.pow`) |
+| `logarithm` | No (native `Math.log10`) |
+| `sine`, `cosine`, `tangent` | No (native `Math.sin` etc.) |
+
+## Accurate decimal examples
+
+```javascript
+// Addition
+0.1 + 0.2         → 0.3      (not 0.30000000000000004)
+1.005 + 0.005     → 1.01     (not 1.0099999999999998)
+
+// Subtraction
+1.0 - 0.9         → 0.1      (not 0.09999999999999998)
+
+// Multiplication
+0.1 * 3           → 0.3      (not 0.30000000000000004)
+
+// Division
+1 / 3             → 0.3333333333333333 (floating-point fraction, expected)
+
+// Modulo
+0.3 % 0.1         → 0        (not 2.7755575615628914e-17)
+
+// Sum of array
+sum([0.1, 0.2, 0.3, 0.4])  → 1.0   (not 0.9999999999999999)
+```
+
+<Tip>
+Use Cruncher for financial and scientific calculations where decimal precision is required. The `sum`, `avg`, `add`, `subtract`, `multiply`, `divide`, and `modulo` tools all apply integer-scaling, so results are safe to compare with `===` or use as inputs to further calculations.
+</Tip>
+
+## Scope and limitations
+
+Integer-scaling applies to the tools listed above. Results from transcendental functions (`sin`, `cos`, `sqrt`, `log`) are limited by native IEEE 754 precision — consistent with every math library and programming language that uses standard floating-point hardware. For most scientific use cases, this precision is more than sufficient.
+
+The `evaluate_expression` tool evaluates expressions using `Math.*` functions directly and does not apply `safeMath`. For decimal-sensitive arithmetic, prefer the typed tools (`add`, `sum`, `avg`, etc.).

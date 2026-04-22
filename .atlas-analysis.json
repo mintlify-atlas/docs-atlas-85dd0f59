@@ -1,0 +1,117 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Cruncher MCP",
+  "projectDescription": "A zero-dependency scientific calculator MCP server that gives AI assistants precise math, statistics, unit conversion, and physical constants via 43 tools.",
+  "theme": "luma",
+  "primaryColor": "#848c8e",
+  "lightColor": "#11161e",
+  "darkColor": "#cfd0d2",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "clients"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "tools/overview",
+              "tools/arithmetic",
+              "tools/trigonometry",
+              "tools/statistics",
+              "tools/unit-conversion",
+              "tools/constants",
+              "tools/advanced"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/tool-tiers"
+            ]
+          },
+          {
+            "group": "How It Works",
+            "pages": [
+              "internals/architecture",
+              "internals/security",
+              "internals/accuracy"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "contributing/guide",
+              "contributing/changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Zero dependencies — pure Node.js, no external libraries",
+    "43 tools across 8 categories: arithmetic, trigonometry, statistics, percentages, unit conversion, constants, memory, and base conversion",
+    "Three tool tiers (minimal/standard/full) to optimize AI context token usage",
+    "Worker thread isolation with configurable timeout prevents infinite loops",
+    "Accurate decimal math via integer-scaling (0.1 + 0.2 === 0.3)",
+    "Fuzzy tool name matching with Levenshtein distance correction",
+    "80+ unit conversions across 8 categories",
+    "16 mathematical, physical, and chemistry constants",
+    "LRU result cache (1000 entries, 5-min TTL)",
+    "Batch processing up to 50 operations per request"
+  ],
+  "publicApiSurface": [
+    "evaluate_expression",
+    "add",
+    "subtract",
+    "multiply",
+    "divide",
+    "modulo",
+    "power",
+    "sqrt",
+    "factorial",
+    "absolute",
+    "sine",
+    "cosine",
+    "tangent",
+    "asin",
+    "acos",
+    "atan",
+    "set_angle_mode",
+    "get_angle_mode",
+    "logarithm",
+    "natural_log",
+    "get_constant",
+    "sum",
+    "avg",
+    "median",
+    "min",
+    "max",
+    "count",
+    "range",
+    "variance",
+    "std_dev",
+    "percentile",
+    "percentage_of",
+    "percentage_change",
+    "percentage_reverse",
+    "convert_unit",
+    "convert_base",
+    "memory_add",
+    "memory_subtract",
+    "memory_recall",
+    "memory_clear",
+    "batch",
+    "cache_clear",
+    "cache_info"
+  ]
+}

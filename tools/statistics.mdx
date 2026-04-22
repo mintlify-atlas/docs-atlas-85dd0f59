@@ -1,0 +1,259 @@
+---
+title: "Statistics and percentage tools: Cruncher MCP guide"
+description: "Reference for Cruncher MCP's statistics tools: sum, avg, median, min, max, count, range, variance, std_dev, percentile, percentage_of, change, and reverse."
+---
+
+Cruncher MCP provides 13 tools for statistical analysis and percentage calculations. All tools except `percentile` are available in the **standard** tier. Every tool operates on exact decimal values — no IEEE 754 drift.
+
+<Note>
+  `percentile` requires `CRUNCHER_TOOL_SET=full`. All other tools on this page are available in the default `standard` tier.
+</Note>
+
+---
+
+## `sum`
+
+Calculates the sum of an array of numbers.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers to sum.
+</ParamField>
+
+```json
+{ "numbers": [15, 22, 8, 41, 19, 30] }
+// → 135
+```
+
+---
+
+## `avg`
+
+Calculates the arithmetic mean of an array of numbers.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers to average.
+</ParamField>
+
+```json
+{ "numbers": [15, 22, 8, 41, 19, 30] }
+// → 22.5
+```
+
+---
+
+## `median`
+
+Calculates the median (middle value) of an array of numbers. For even-length arrays, returns the mean of the two middle values.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers. Does not need to be pre-sorted.
+</ParamField>
+
+```json
+{ "numbers": [15, 22, 8, 41, 19, 30] }
+// → 20.5  (mean of 19 and 22)
+
+{ "numbers": [3, 1, 4, 1, 5] }
+// → 3
+```
+
+---
+
+## `min`
+
+Returns the minimum value in an array of numbers.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+```json
+{ "numbers": [3, 7, 2, 9, 1] }
+// → 1
+```
+
+---
+
+## `max`
+
+Returns the maximum value in an array of numbers.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+```json
+{ "numbers": [3, 7, 2, 9, 1] }
+// → 9
+```
+
+---
+
+## `count`
+
+Returns the number of elements in an array.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+```json
+{ "numbers": [10, 20, 30, 40, 50] }
+// → 5
+```
+
+---
+
+## `range`
+
+Calculates the range of an array (max − min).
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+```json
+{ "numbers": [3, 7, 2, 9, 1] }
+// → 8
+```
+
+---
+
+## `variance`
+
+Calculates the variance of an array of numbers. Supports both **sample variance** (n-1) and **population variance** (n).
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+<ParamField body="population" type="boolean" default="false">
+  When `false` (default), calculates sample variance using (n-1) in the denominator — appropriate when the array is a sample from a larger population. When `true`, calculates population variance using (n) — appropriate when the array represents the entire population.
+</ParamField>
+
+```json
+{ "numbers": [85, 92, 78, 90, 88] }
+// → 27.3  (sample variance, n-1)
+
+{ "numbers": [85, 92, 78, 90, 88], "population": true }
+// → 21.84  (population variance, n)
+```
+
+---
+
+## `std_dev`
+
+Calculates the standard deviation of an array of numbers. Supports both **sample** (n-1) and **population** (n) mode.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+<ParamField body="population" type="boolean" default="false">
+  When `false` (default), calculates sample standard deviation (square root of sample variance). When `true`, calculates population standard deviation.
+</ParamField>
+
+```json
+{ "numbers": [10, 12, 8, 14, 6] }
+// → 3.1623  (sample std dev)
+
+{ "numbers": [10, 12, 8, 14, 6], "population": true }
+// → 2.8284  (population std dev)
+```
+
+---
+
+## `percentile`
+
+<Note>
+  This tool requires `CRUNCHER_TOOL_SET=full`. It is not available in `minimal` or `standard` tiers.
+</Note>
+
+Returns the value at a given percentile in an array of numbers using linear interpolation.
+
+<ParamField body="numbers" type="number[]" required>
+  Array of numbers.
+</ParamField>
+
+<ParamField body="percentile" type="number" required>
+  The percentile to calculate. Must be in the range `[0, 100]`.
+</ParamField>
+
+```json
+{ "numbers": [10, 20, 30, 40, 50], "percentile": 75 }
+// → 40
+
+{ "numbers": [23, 45, 12, 67, 89, 34, 56, 78, 90, 11], "percentile": 95 }
+// → 89
+```
+
+---
+
+## `percentage_of`
+
+Answers: "What is X% of Y?"
+
+<ParamField body="percent" type="number" required>
+  The percentage value (e.g., `15` for 15%).
+</ParamField>
+
+<ParamField body="total" type="number" required>
+  The total amount.
+</ParamField>
+
+```json
+{ "percent": 15, "total": 200 }
+// → 30
+```
+
+---
+
+## `percentage_change`
+
+Answers: "What is the percentage change from A to B?"
+
+<ParamField body="from" type="number" required>
+  The starting value.
+</ParamField>
+
+<ParamField body="to" type="number" required>
+  The ending value.
+</ParamField>
+
+```json
+{ "from": 50, "to": 80 }
+// → 60  (60% increase)
+
+{ "from": 100, "to": 75 }
+// → -25  (25% decrease)
+```
+
+---
+
+## `percentage_reverse`
+
+Answers: "X is Y% of what total?"
+
+<ParamField body="value" type="number" required>
+  The partial value.
+</ParamField>
+
+<ParamField body="percent" type="number" required>
+  The percentage that `value` represents.
+</ParamField>
+
+```json
+{ "value": 30, "percent": 15 }
+// → 200
+```
+
+---
+
+## Sample vs. population mode
+
+| Mode | Formula | When to use |
+| :--- | :--- | :--- |
+| Sample (`population: false`) | Divide by n−1 | Array is a sample drawn from a larger dataset |
+| Population (`population: true`) | Divide by n | Array represents the complete population |
+
+When in doubt, use the default sample mode. It provides an unbiased estimate when working with a subset of data.

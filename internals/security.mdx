@@ -1,0 +1,116 @@
+---
+title: "Cruncher security: expression safety and isolation"
+description: "Cruncher's five-layer security model: regex whitelist, no eval(), worker isolation, custom schema validation, and zero external dependencies."
+---
+
+Cruncher MCP evaluates math expressions and executes tool calls on behalf of an AI client. Its security model is built around five independent layers, each of which must pass before any computation runs. No external security libraries are involved — every protection is implemented in plain Node.js.
+
+## The five security layers
+
+### 1. Strict regex whitelist for expression evaluation
+
+The `evaluate_expression` tool accepts arbitrary math strings. Before any expression is executed, it must pass a whitelist that permits only:
+
+- Digits and decimal points (`0–9`, `.`)
+- Arithmetic operators (`+`, `-`, `*`, `/`, `%`, `^`)
+- Parentheses (`(`, `)`)
+- Commas (for multi-argument functions)
+- Approved function names (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `sqrt`, `log10`, `ln`, `log`, `abs`, `round`, `floor`, `ceil`, `min`, `max`)
+- Named constants (`pi`, `e`, `tau`, `phi`, `sqrt2`, `euler_mascheroni`, `c`, `g`, `G`, `h`, `k`, `R`, `NA`, `e_charge`, `m_e`, `m_p`)
+
+Anything outside this set is rejected before evaluation begins.
+
+**What the whitelist blocks:**
+
+```text
+require("fs")         → rejected (identifier not on whitelist)
+process.exit(0)       → rejected (property access not allowed)
+eval("1 + 1")         → rejected (eval is not an approved function)
+x + 2                 → rejected (variables are not allowed)
+```
+
+### 2. No `eval()` — regex-transformed `Math.*` calls
+
+Cruncher does not use `eval()` directly on user input. Instead:
+
+1. Approved function names are replaced with their `Math.*` equivalents via regex (e.g., `sqrt(` → `Math.sqrt(`).
+2. A second pass verifies that no unapproved `Math.*` calls remain after substitution.
+3. Named constants are replaced with their numeric literals.
+4. Only after all checks pass does Cruncher call `new Function("return (...)")` on the sanitized numeric expression.
+
+This means user-supplied strings never reach the JavaScript engine in their original form.
+
+### 3. Worker thread isolation
+
+Computationally heavy operations run inside isolated Node.js `worker_threads`:
+
+- Workers receive a snapshot of server state — they do not hold a live reference to main-thread memory.
+- If a calculation exceeds the timeout (default 3000 ms, configurable via `CRUNCHER_TIMEOUT`), the main thread calls `worker.terminate()` to kill the thread immediately.
+- The main stdio channel — and all MCP communication — is never blocked by a worker.
+
+<Warning>
+The server trusts the MCP client connection. It does not authenticate or encrypt the stdio channel. Run Cruncher in a restricted environment if exposing it to untrusted clients.
+</Warning>
+
+### 4. Custom recursive JSON Schema validator
+
+Every tool call is validated against its `inputSchema` using a custom recursive validator — no Zod, no Ajv. The validator enforces:
+
+- **Type enforcement**: `number` must be a JSON number, not a string like `"5"`.
+- **Enum enforcement**: Only enumerated values are accepted (e.g., `"degrees"` or `"radians"`).
+- **Required fields**: Missing required arguments return an error before execution.
+- **Nested validation**: Objects and arrays are validated depth-first.
+
+Validation errors return a structured response:
+
+```json
+{
+  "error": {
+    "code": -32602,
+    "message": "Validation Error",
+    "data": {
+      "parameter": "unit",
+      "expected": "enum: degrees, radians",
+      "received": "string",
+      "receivedValue": "deg",
+      "tool": "sine"
+    }
+  }
+}
+```
+
+### 5. Zero external dependencies
+
+Cruncher uses no third-party packages — no `mathjs`, no `zod`, no `@modelcontextprotocol/sdk`. Every feature is implemented using Node.js built-ins. This eliminates the supply-chain attack surface that comes with a dependency tree.
+
+## Error codes
+
+| Code | Name | Cause |
+|---|---|---|
+| `-32602` | Validation Error | Wrong type, missing required field, or invalid enum value |
+| `-32000` | Execution Timeout | Calculation exceeded `CRUNCHER_TIMEOUT` |
+| `-32601` | Method not found | Tool name not recognized; includes a fuzzy "Did you mean?" suggestion |
+
+### Method not found with fuzzy suggestion
+
+When an unknown tool name is received, Cruncher uses Levenshtein distance and prefix matching to find the closest known tool and suggest it:
+
+```json
+{
+  "error": {
+    "code": -32601,
+    "message": "Tool 'fact' not found. Did you mean 'factorial'?"
+  }
+}
+```
+
+## What Cruncher is protected against
+
+| Threat | Protection |
+|---|---|
+| Code injection | Regex whitelist, no `eval()`, verified `Math.*` substitution |
+| Prototype pollution | Schema validator blocks non-primitive types at all levels |
+| Infinite loops | Worker timeout kills execution after the configured limit |
+| Memory exhaustion | LRU cache capped at 1000 entries with eviction |
+| Concurrent data races | Atomic memory queue serializes state modifications |
+| ReDoS | No user-controlled regex patterns; all patterns are pre-compiled |

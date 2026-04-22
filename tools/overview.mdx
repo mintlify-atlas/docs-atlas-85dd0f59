@@ -1,0 +1,87 @@
+---
+title: "Cruncher MCP tools: reference overview and tier guide"
+description: "Complete reference for all 43 Cruncher MCP tools across 8 categories: arithmetic, trigonometry, statistics, unit conversion, constants, and advanced tools."
+---
+
+Cruncher MCP exposes its calculator as individual MCP tools that any compatible AI client can call. This reference covers all 43 tools organized by category, explains the three tool-set tiers, and links to detailed documentation for each group.
+
+## Tool tiers
+
+Cruncher uses the `CRUNCHER_TOOL_SET` environment variable to control which tools are registered. Each tier is a strict superset of the one before it.
+
+| Tier | Tools | Token budget | Use case |
+| :--- | :---: | :--- | :--- |
+| `minimal` | 5 | ~160 tokens | Core arithmetic only; use `evaluate_expression` for everything else |
+| `standard` *(default)* | 34 | ~1,150 tokens | Arithmetic, trig, stats, percentages, constants, unit conversion |
+| `full` | 43 | ~1,500 tokens | Standard + memory, base conversion, percentile, batch, cache |
+
+<Note>
+  Even in `minimal` mode, `evaluate_expression` handles complex math including trig, logs, and constants. Individual typed tools just aren't registered as separate MCP calls, saving up to 90% on context tokens.
+</Note>
+
+## Tool categories
+
+<CardGroup cols={2}>
+  <Card title="Arithmetic and expressions" icon="calculator" href="/tools/arithmetic">
+    10 tools: `evaluate_expression`, `add`, `subtract`, `multiply`, `divide`, `modulo`, `power`, `sqrt`, `factorial`, `absolute`
+  </Card>
+  <Card title="Trigonometry" icon="chart-line" href="/tools/trigonometry">
+    8 tools: `sine`, `cosine`, `tangent`, `asin`, `acos`, `atan`, `set_angle_mode`, `get_angle_mode`
+  </Card>
+  <Card title="Statistics and percentages" icon="chart-bar" href="/tools/statistics">
+    13 tools: `sum`, `avg`, `median`, `min`, `max`, `count`, `range`, `variance`, `std_dev`, `percentile`, `percentage_of`, `percentage_change`, `percentage_reverse`
+  </Card>
+  <Card title="Unit conversion" icon="arrows-left-right" href="/tools/unit-conversion">
+    1 tool, 80+ units: `convert_unit` — 8 categories including length, weight, temperature, speed, and digital storage
+  </Card>
+  <Card title="Constants" icon="atom" href="/tools/constants">
+    1 tool, 16 constants: `get_constant` — mathematical constants (pi, e, phi) and physical constants (c, g, h, k)
+  </Card>
+  <Card title="Advanced tools" icon="bolt" href="/tools/advanced">
+    9 tools (full tier): `memory_add`, `memory_subtract`, `memory_recall`, `memory_clear`, `convert_base`, `batch`, `cache_clear`, `cache_info`, `percentile`
+  </Card>
+</CardGroup>
+
+## Full tool list
+
+### Minimal tier (5 tools)
+
+| Tool | Description |
+| :--- | :--- |
+| `evaluate_expression` | Evaluate a plain-text math expression string |
+| `add` | Addition (a + b) |
+| `subtract` | Subtraction (a − b) |
+| `multiply` | Multiplication (a × b) |
+| `divide` | Division (a ÷ b) |
+
+### Standard tier (34 tools, includes all minimal)
+
+| Tool | Category |
+| :--- | :--- |
+| `sqrt` | Square root |
+| `power` | Exponentiation (a^b) |
+| `absolute` | Absolute value |
+| `modulo` | Remainder (a mod b) |
+| `factorial` | Factorial (n!) |
+| `logarithm` | Base-10 logarithm |
+| `natural_log` | Natural logarithm (ln) |
+| `get_constant` | Fetch mathematical or physical constants |
+| `sine`, `cosine`, `tangent` | Trigonometry |
+| `asin`, `acos`, `atan` | Inverse trigonometry |
+| `set_angle_mode`, `get_angle_mode` | Global angle mode (degrees/radians) |
+| `sum`, `avg`, `min`, `max` | Basic statistics |
+| `count` | Count array elements |
+| `variance`, `std_dev` | Variance and standard deviation |
+| `percentage_of`, `percentage_change`, `percentage_reverse` | Percentage calculations |
+| `median`, `range` | Median and range |
+| `convert_unit` | 80+ unit conversions across 8 categories |
+
+### Full tier (43 tools, includes all standard)
+
+| Tool | Category |
+| :--- | :--- |
+| `percentile` | Value at Nth percentile |
+| `convert_base` | Base 2/8/10/16 conversion |
+| `memory_add`, `memory_subtract`, `memory_recall`, `memory_clear` | Calculator memory (M+, M−, MR, MC) |
+| `batch` | Execute up to 50 operations in one call |
+| `cache_clear`, `cache_info` | LRU result cache management |

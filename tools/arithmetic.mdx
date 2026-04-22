@@ -1,0 +1,252 @@
+---
+title: "Arithmetic and expression tools: Cruncher MCP guide"
+description: "Reference for Cruncher MCP's 10 arithmetic tools: evaluate_expression, add, subtract, multiply, divide, modulo, power, sqrt, factorial, and absolute."
+---
+
+Cruncher MCP provides 10 arithmetic tools for all fundamental math operations. The `evaluate_expression` tool is the primary interface — it evaluates a plain-text math string in a single call and supports built-in functions, operators, and constants. The individual typed tools (`add`, `multiply`, etc.) exist for explicit, single-operation calls.
+
+## `evaluate_expression`
+
+<Note>
+  This is the primary tool. Prefer it over chaining individual tools for any expression with two or more operations.
+</Note>
+
+Evaluates a plain-text mathematical expression string and returns the result. Supports arithmetic operators, built-in functions, and named constants.
+
+<ParamField body="expression" type="string" required>
+  A plain-text math expression. Operators: `+`, `-`, `*`, `/`, `%`, `^` (power). Use explicit operators — `2 * pi` works, `2pi` does not.
+</ParamField>
+
+<Warning>
+  `evaluate_expression` **always uses radians** for trigonometric functions, regardless of the global angle mode set by `set_angle_mode`. To work in degrees, convert manually: `sin(90 * pi / 180)`.
+</Warning>
+
+### Supported built-in functions
+
+| Function | Description | Example | Result |
+| :--- | :--- | :--- | :--- |
+| `sin(x)` | Sine (radians) | `sin(pi / 2)` | `1` |
+| `cos(x)` | Cosine (radians) | `cos(pi)` | `-1` |
+| `tan(x)` | Tangent (radians) | `tan(pi / 4)` | `~1` |
+| `asin(x)` | Arc-sine, result in radians | `asin(1)` | `π/2` |
+| `acos(x)` | Arc-cosine, result in radians | `acos(0)` | `π/2` |
+| `atan(x)` | Arc-tangent, result in radians | `atan(1)` | `π/4` |
+| `sqrt(x)` | Square root | `sqrt(144)` | `12` |
+| `log10(x)` | Base-10 logarithm | `log10(1000)` | `3` |
+| `ln(x)` | Natural logarithm (base e) | `ln(e)` | `1` |
+| `log(x, b)` | Arbitrary-base logarithm | `log(8, 2)` | `3` |
+| `abs(x)` | Absolute value | `abs(-5)` | `5` |
+| `round(x)` | Round to nearest integer | `round(3.7)` | `4` |
+| `floor(x)` | Round down | `floor(3.9)` | `3` |
+| `ceil(x)` | Round up | `ceil(3.1)` | `4` |
+| `min(a, b, ...)` | Minimum of arguments | `min(3, 1, 4)` | `1` |
+| `max(a, b, ...)` | Maximum of arguments | `max(3, 1, 4)` | `4` |
+
+### Supported constants in expressions
+
+| Constant | Description | Value |
+| :--- | :--- | :--- |
+| `pi` | π (circle ratio) | 3.14159265358979... |
+| `e` | Euler's number | 2.71828182845904... |
+| `tau` | τ = 2π | 6.28318530717958... |
+| `phi` | Golden ratio (φ) | 1.61803398874989... |
+| `sqrt2` | √2 | 1.41421356237309... |
+| `euler_mascheroni` | Euler–Mascheroni constant (γ) | 0.57721566490153... |
+| `c` | Speed of light (m/s) | 299792458 |
+| `g` | Standard gravity (m/s²) | 9.80665 |
+| `G` | Gravitational constant | 6.6743e-11 |
+| `h` | Planck constant (J·s) | 6.62607015e-34 |
+| `k` | Boltzmann constant (J/K) | 1.380649e-23 |
+| `R` | Ideal gas constant (J/mol·K) | 8.314462618 |
+| `NA` | Avogadro constant (1/mol) | 6.02214076e23 |
+| `e_charge` | Elementary charge (C) | 1.602176634e-19 |
+| `m_e` | Electron mass (kg) | 9.1093837015e-31 |
+| `m_p` | Proton mass (kg) | 1.67262192369e-27 |
+
+### Error messages
+
+Domain errors return descriptive messages:
+
+| Expression | Error hint |
+| :--- | :--- |
+| `sqrt(-1)` | "Check for: sqrt(negative), log(negative/zero), asin/acos out of [-1,1]" |
+| `1/0` | "Check for division by zero or overflow" |
+| `asin(5)` | "asin/acos out of [-1,1]" |
+
+### Examples
+
+```json
+{ "expression": "2 * pi * 5" }
+// → 31.41592653589793
+
+{ "expression": "sin(pi / 6) + sqrt(16)" }
+// → 4.5
+
+{ "expression": "log10(1000) ^ 2" }
+// → 9
+
+{ "expression": "log(16, 2)" }
+// → 4
+
+{ "expression": "3^3 + abs(-5) / 2" }
+// → 29.5
+```
+
+---
+
+## `add`
+
+Adds two numbers.
+
+<ParamField body="a" type="number" required>
+  First operand.
+</ParamField>
+
+<ParamField body="b" type="number" required>
+  Second operand.
+</ParamField>
+
+```json
+{ "a": 0.1, "b": 0.2 }
+// → 0.3  (exact, no IEEE 754 drift)
+```
+
+---
+
+## `subtract`
+
+Subtracts the second number from the first.
+
+<ParamField body="a" type="number" required>
+  Minuend.
+</ParamField>
+
+<ParamField body="b" type="number" required>
+  Subtrahend.
+</ParamField>
+
+```json
+{ "a": 10, "b": 3.5 }
+// → 6.5
+```
+
+---
+
+## `multiply`
+
+Multiplies two numbers.
+
+<ParamField body="a" type="number" required>
+  First factor.
+</ParamField>
+
+<ParamField body="b" type="number" required>
+  Second factor.
+</ParamField>
+
+```json
+{ "a": 7, "b": 8 }
+// → 56
+```
+
+---
+
+## `divide`
+
+Divides the first number by the second.
+
+<ParamField body="a" type="number" required>
+  Dividend.
+</ParamField>
+
+<ParamField body="b" type="number" required>
+  Divisor. Must be non-zero.
+</ParamField>
+
+```json
+{ "a": 22, "b": 7 }
+// → 3.142857142857143
+```
+
+---
+
+## `modulo`
+
+Returns the remainder of dividing `a` by `b`.
+
+<ParamField body="a" type="number" required>
+  Dividend.
+</ParamField>
+
+<ParamField body="b" type="number" required>
+  Divisor.
+</ParamField>
+
+```json
+{ "a": 17, "b": 5 }
+// → 2
+```
+
+---
+
+## `power`
+
+Raises `base` to the power of `exponent`.
+
+<ParamField body="base" type="number" required>
+  The base value.
+</ParamField>
+
+<ParamField body="exponent" type="number" required>
+  The exponent.
+</ParamField>
+
+```json
+{ "base": 2, "exponent": 10 }
+// → 1024
+```
+
+---
+
+## `sqrt`
+
+Calculates the square root of a value.
+
+<ParamField body="value" type="number" required>
+  A non-negative number.
+</ParamField>
+
+```json
+{ "value": 144 }
+// → 12
+```
+
+---
+
+## `factorial`
+
+Calculates the factorial of a non-negative integer (n!).
+
+<ParamField body="n" type="number" required>
+  A non-negative integer. Large values run in a worker thread with a 3-second timeout.
+</ParamField>
+
+```json
+{ "n": 10 }
+// → 3628800
+```
+
+---
+
+## `absolute`
+
+Returns the absolute value of a number.
+
+<ParamField body="value" type="number" required>
+  Any real number.
+</ParamField>
+
+```json
+{ "value": -42.5 }
+// → 42.5
+```
